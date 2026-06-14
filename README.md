@@ -11,8 +11,8 @@ defects or failed agent behavior. Each checkpoint documents what is expected.
 
 ## Current Checkpoint
 
-`step-00-project-skeleton` establishes the public project, reproducible Python
-tooling, and baseline test. It does not implement the software-team loop yet.
+`step-01-sample-app` adds the intentionally imperfect calculator used by later
+loop scenarios. The software-team loop itself is not implemented yet.
 
 The complete roadmap is in [PLAN.md](PLAN.md). [CLAUDE.md](CLAUDE.md) defines
 the working rules used while building it.
@@ -41,7 +41,39 @@ Useful commands:
 ```bash
 make format
 make test
+make reproduce-division-by-zero
 ```
+
+## Sample Application
+
+The application has a pure calculator service and a small dictionary-based API
+boundary. It supports `add`, `subtract`, `multiply`, and `divide`.
+
+### Intentional Defect
+
+Division by zero is deliberately unhandled and escapes the API boundary as a
+raw `ZeroDivisionError`. This is the monitoring-driven defect that a later
+checkpoint will ask the loop to fix.
+
+Reproduce and verify it with:
+
+```bash
+make reproduce-division-by-zero
+```
+
+The matching readable monitoring event is in
+`mock-systems/monitoring/events.jsonl`. Baseline tests intentionally cover only
+supported behavior; the reproduction command guards the defective checkpoint.
+
+### Missing Feature
+
+The `modulo` operation is intentionally absent. Its acceptance criteria are:
+
+- A request with `operation: "modulo"` returns the remainder of `left / right`.
+- Numeric validation matches the existing operations.
+- A zero right operand returns a controlled application error rather than a
+  raw Python exception.
+- Existing operations keep their current behavior.
 
 ## Replaying Checkpoints
 
@@ -49,9 +81,10 @@ Each completed phase has an immutable annotated Git tag. To inspect this
 checkpoint:
 
 ```bash
-git switch --detach step-00-project-skeleton
+git switch --detach step-01-sample-app
 make setup
 make check
+make reproduce-division-by-zero
 ```
 
 Return to current development with:
