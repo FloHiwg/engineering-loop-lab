@@ -1,0 +1,16 @@
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.uv-cache/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+docs/article-notes.md
+docs/interviews/*.md
+!docs/interviews/README.md
+runs/*
+!runs/.gitkeep
+worktrees/

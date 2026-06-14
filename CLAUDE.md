@@ -26,10 +26,11 @@ For every checkpoint:
 3. Record commands, evidence, metrics, failures, surprises, decisions,
    learnings, and possible article claims.
 4. Summarize expectation, observation, surprise, and implication in
-   `docs/article-notes.md`.
+   the ignored `docs/article-notes.md`.
 5. Interview the user with three to five questions about their reaction,
    experience, disagreements, and what matters for the article. Record their
-   answers in `docs/interviews/<checkpoint>.md` and do not invent their view.
+   answers in an ignored `docs/interviews/<checkpoint>.md` file and do not
+   invent their view.
 6. Add a dedicated checkpoint commit and the exact annotated tag from
    `PLAN.md`.
 7. Report the commit, tag, checks, replay command, findings, and open questions.
@@ -42,6 +43,6 @@ A checkpoint is complete only when:
 
 - Its exit criteria and relevant checks pass.
 - Replay instructions work from a clean checkout.
-- Findings and article notes are updated.
-- The user interview is recorded or explicitly marked pending.
+- Public findings and private article notes are updated.
+- The private user interview is recorded or explicitly marked pending.
 - The checkpoint commit and annotated tag exist.

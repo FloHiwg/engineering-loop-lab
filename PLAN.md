@@ -108,7 +108,8 @@ loop-engineering-example/
 │   ├── architecture.md
 │   ├── decisions/
 │   ├── experiment-log.md
-│   ├── article-notes.md
+│   ├── article-notes.md       # local, ignored
+│   ├── interviews/            # local entries, ignored
 │   └── publishing-checklist.md
 ├── AGENTS.md
 ├── CONTRIBUTING.md
@@ -128,7 +129,8 @@ Each implementation phase ends with:
 - A numbered Git tag such as `step-01-sample-app`.
 - A matching section in the README containing exact replay commands.
 - A dated experiment-log entry.
-- A short article-note entry: expectation, observation, surprise, implication.
+- A local article-note entry: expectation, observation, surprise, implication.
+- A local checkpoint interview capturing the project owner's perspective.
 
 Tags are immutable teaching checkpoints. The main branch contains the latest
 complete version. A reader can use either:
@@ -198,7 +200,8 @@ Deliver:
   note suitable for a public educational repository.
 - Add Python project metadata, pinned development dependencies, Makefile,
   formatting, linting, and tests.
-- Add documentation templates for experiments, decisions, and article notes.
+- Add public documentation templates for experiments and decisions, plus
+  ignored local templates for article notes and checkpoint interviews.
 - Add a publishing checklist that checks fixtures and logs for secrets or
   machine-specific paths.
 
