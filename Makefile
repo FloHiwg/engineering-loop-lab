@@ -1,6 +1,6 @@
 UV := UV_CACHE_DIR=.uv-cache uv
 
-.PHONY: setup check format lint test reproduce-division-by-zero
+.PHONY: setup check format inspect-systems lint test reproduce-division-by-zero
 
 setup:
 	$(UV) sync --locked
@@ -19,6 +19,9 @@ lint:
 
 test:
 	$(UV) run pytest
+
+inspect-systems:
+	$(UV) run python -m loop_engineering_example.inspect
 
 reproduce-division-by-zero:
 	$(UV) run python -m loop_engineering_example.reproduce
