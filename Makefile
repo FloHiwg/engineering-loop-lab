@@ -1,6 +1,6 @@
 UV := UV_CACHE_DIR=.uv-cache uv
 
-.PHONY: setup check format lint test publication-check
+.PHONY: setup check format lint test
 
 setup:
 	$(UV) sync --locked
@@ -9,7 +9,6 @@ check:
 	$(UV) run ruff format --check .
 	$(UV) run ruff check .
 	$(UV) run pytest
-	$(UV) run python scripts/check_publication.py
 
 format:
 	$(UV) run ruff format .
@@ -20,6 +19,3 @@ lint:
 
 test:
 	$(UV) run pytest
-
-publication-check:
-	$(UV) run python scripts/check_publication.py

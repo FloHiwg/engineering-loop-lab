@@ -21,10 +21,10 @@ criteria. This file only defines how work is conducted.
 For every checkpoint:
 
 1. Record its question, assumptions, expected outcome, and exit criteria in
-   `docs/experiment-log.md`.
+   the ignored local article notes.
 2. Implement and verify it in focused commits.
 3. Record commands, evidence, metrics, failures, surprises, decisions,
-   learnings, and possible article claims.
+   learnings, and possible article claims in those local notes.
 4. Summarize expectation, observation, surprise, and implication in
    the ignored `docs/article-notes.md`.
 5. Interview the user with three to five questions about their reaction,
@@ -43,6 +43,6 @@ A checkpoint is complete only when:
 
 - Its exit criteria and relevant checks pass.
 - Replay instructions work from a clean checkout.
-- Public findings and private article notes are updated.
+- Private article notes are updated.
 - The private user interview is recorded or explicitly marked pending.
 - The checkpoint commit and annotated tag exist.

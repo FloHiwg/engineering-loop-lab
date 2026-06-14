@@ -104,20 +104,16 @@ loop-engineering-example/
 │   ├── run-ci.sh
 │   ├── reset-demo.sh
 │   └── replay.sh
-├── docs/
-│   ├── architecture.md
-│   ├── decisions/
-│   ├── experiment-log.md
-│   ├── article-notes.md       # local, ignored
-│   ├── interviews/            # local entries, ignored
-│   └── publishing-checklist.md
 ├── AGENTS.md
-├── CONTRIBUTING.md
 ├── LICENSE
 ├── Makefile
 ├── PLAN.md
 └── README.md
 ```
+
+An ignored local `docs/` tree holds article notes and interviews. Public
+documentation should be added only when readers need it to understand or
+replay the code.
 
 ## 5. Replay and Documentation Strategy
 
@@ -128,7 +124,7 @@ Each implementation phase ends with:
 - A green test suite.
 - A numbered Git tag such as `step-01-sample-app`.
 - A matching section in the README containing exact replay commands.
-- A dated experiment-log entry.
+- A dated local experiment-log entry.
 - A local article-note entry: expectation, observation, surprise, implication.
 - A local checkpoint interview capturing the project owner's perspective.
 
@@ -164,9 +160,9 @@ metrics.json
 summary.md
 ```
 
-Committed scenario fixtures remain deterministic. Generated local runs are
-ignored by default, while selected representative runs are curated and
-committed under `docs/example-runs/`.
+Committed scenario fixtures remain deterministic. Generated local runs and
+article evidence are ignored by default. Publish only evidence needed to
+reproduce a concrete claim, and place it beside the relevant scenario.
 
 ### Experiment log entry
 
@@ -183,11 +179,8 @@ Every meaningful build step or run records:
 - Decision and next change.
 - Candidate article takeaway.
 
-### Decision records
-
-Architecture decisions go in `docs/decisions/NNNN-title.md`. Each record states
-context, decision, alternatives, consequences, and what evidence could cause
-the decision to be revisited.
+Architecture decisions that matter to the article are recorded in ignored
+local notes rather than added to the public repository as separate files.
 
 ## 6. Implementation Plan
 
@@ -196,13 +189,12 @@ the decision to be revisited.
 Deliver:
 
 - Initialize Git with `main` as the default branch.
-- Add MIT license, README, contribution guide, code of conduct, and security
-  note suitable for a public educational repository.
+- Add an MIT license and concise README suitable for a public educational
+  repository.
 - Add Python project metadata, pinned development dependencies, Makefile,
   formatting, linting, and tests.
-- Add public documentation templates for experiments and decisions, plus
-  ignored local templates for article notes and checkpoint interviews.
-- Add a publishing checklist that checks fixtures and logs for secrets or
+- Add ignored local templates for experiment notes and checkpoint interviews.
+- Record a local publishing checklist for secrets, personal data, and
   machine-specific paths.
 
 Replay checkpoint: `step-00-project-skeleton`
@@ -465,7 +457,7 @@ Exit criteria:
 
 ### Phase 11: Publish the article
 
-Build the article from experiment-log and decision-record entries:
+Build the article from the ignored local experiment and interview notes:
 
 1. Why manual prompting stops scaling.
 2. The smallest useful loop.

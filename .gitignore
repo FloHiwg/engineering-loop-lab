@@ -8,9 +8,6 @@ __pycache__/
 *.egg-info/
 build/
 dist/
-docs/article-notes.md
-docs/interviews/*.md
-!docs/interviews/README.md
-runs/*
-!runs/.gitkeep
+docs/
+runs/
 worktrees/
