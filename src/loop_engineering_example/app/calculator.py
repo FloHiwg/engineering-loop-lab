@@ -23,11 +23,16 @@ def divide(left: Number, right: Number) -> Number:
     return left / right
 
 
+def power(left: Number, right: Number) -> Number:
+    return left**right
+
+
 OPERATIONS: dict[str, Operation] = {
     "add": add,
     "subtract": subtract,
     "multiply": multiply,
     "divide": divide,
+    "power": power,
 }
 
 

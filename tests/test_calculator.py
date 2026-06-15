@@ -10,6 +10,7 @@ from loop_engineering_example.app.calculator import calculate
         ("subtract", 7, 3, 4),
         ("multiply", 7, 3, 21),
         ("divide", 7, 2, 3.5),
+        ("power", 2, 8, 256),
     ],
 )
 def test_calculate_supported_operations(
@@ -22,5 +23,5 @@ def test_calculate_supported_operations(
 
 
 def test_calculate_rejects_unknown_operation() -> None:
-    with pytest.raises(ValueError, match="unsupported operation: power"):
-        calculate("power", 2, 3)
+    with pytest.raises(ValueError, match="unsupported operation: modulo"):
+        calculate("modulo", 2, 3)
