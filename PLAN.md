@@ -431,31 +431,7 @@ Exit criteria:
 - Conclusions distinguish observations from interpretations.
 - Failed and inconvenient runs remain represented.
 
-### Phase 10: Replace one mock integration
-
-Preferred candidate: GitHub Issues or GitHub Actions.
-
-Deliver:
-
-- A second adapter implementing the existing contract.
-- Configuration switch between file-backed and real integration.
-- Contract-test results for both implementations.
-- Documentation of portability gaps and assumptions exposed by replacement.
-
-Replay checkpoint: `step-10-real-adapter`
-
-Experiment question:
-
-Did the adapter boundary reflect the real service, or merely make the mock
-look clean?
-
-Exit criteria:
-
-- The file-backed demo remains the default and works without credentials.
-- Real integration is optional and safely documented.
-- No secrets or account-specific data appear in committed artifacts.
-
-### Phase 11: Publish the article
+### Phase 10: Publish the article
 
 Build the article from the ignored local experiment and interview notes:
 
@@ -470,7 +446,7 @@ Build the article from the ignored local experiment and interview notes:
 9. What worktrees solved and did not solve.
 10. What remained deterministic.
 11. When a loop is worth building.
-12. Moving from file mocks to real integrations.
+12. What file-backed systems demonstrate and where the analogy ends.
 
 Replay checkpoint: `v1.0.0`
 
