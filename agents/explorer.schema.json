@@ -35,6 +35,7 @@
     },
     "ambiguities": {
       "type": "array",
+      "description": "Only questions that block safe implementation. Must be empty for ready.",
       "items": {
         "type": "string",
         "minLength": 1

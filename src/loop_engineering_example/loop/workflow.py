@@ -15,6 +15,7 @@ from typing import Protocol
 
 from loop_engineering_example.loop.storage import (
     Record,
+    StorageError,
     atomic_write_json,
     atomic_write_text,
     read_jsonl,
@@ -490,10 +491,19 @@ class EngineeringLoop:
         instructions = (REPOSITORY_ROOT / "agents" / "explorer.md").read_text()
         prompt = build_triage_prompt(instructions, event, issue, issue["body"])
         progress.log("Running the read-only triage agent. This can take a minute.")
-        report = save_validated_result(
-            run_directory / "triage",
-            explorer.explore(prompt, run_directory / "triage"),
-        )
+        triage_directory = run_directory / "triage"
+        try:
+            report = save_validated_result(
+                triage_directory,
+                explorer.explore(prompt, triage_directory),
+            )
+        except StorageError as error:
+            result_path = triage_directory / "result.json"
+            relative_path = result_path.relative_to(REPOSITORY_ROOT)
+            raise WorkflowError(
+                f"triage returned an inconsistent result: {error}. "
+                f"Inspect {relative_path} and rerun make loop."
+            ) from error
         progress.log(f"Triage finished with decision: {report['decision'].upper()}.")
         if report["decision"] != "ready":
             raise WorkflowError("triage escalated: " + "; ".join(report["ambiguities"]))

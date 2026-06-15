@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from loop_engineering_example.loop.storage import StorageError
 from loop_engineering_example.loop.workflow import (
     EngineeringLoop,
     GitHub,
@@ -313,6 +314,79 @@ def test_prepare_worktree_resumes_existing_directory(tmp_path: Path) -> None:
     assert branch == "loop-demo/issue-7"
     assert result == worktree
     assert runner.commands == []
+
+
+def test_invalid_triage_result_becomes_retryable_workflow_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from loop_engineering_example.loop import workflow
+
+    repository = tmp_path / "repository"
+    repository.mkdir()
+    (repository / "agents").mkdir()
+    (repository / "agents" / "explorer.md").write_text(
+        "Read only.\n",
+        encoding="utf-8",
+    )
+    events_path = repository / "events.jsonl"
+    events_path.write_text(
+        json.dumps(
+            {
+                "event_id": "task-1",
+                "title": "Task 1",
+                "message": "Test task",
+                "reproduce": "true",
+                "acceptance_criteria": ["Do the task."],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    runner = FakeRunner(
+        {
+            ("git", "status", "--porcelain"): "",
+            ("git", "branch", "--show-current"): "main",
+            (
+                "git",
+                "rev-list",
+                "--left-right",
+                "--count",
+                "origin/main...HEAD",
+            ): "0\t0",
+        }
+    )
+    github = FakeGitHub(
+        [
+            {
+                "number": 1,
+                "title": "Task 1",
+                "body": "<!-- loop-demo:task-1 -->",
+                "state": "OPEN",
+                "url": "https://example.test/issues/1",
+            }
+        ]
+    )
+
+    class InvalidExplorer:
+        def explore(self, prompt: str, output_directory: Path) -> dict[str, object]:
+            output_directory.mkdir(parents=True, exist_ok=True)
+            (output_directory / "result.json").write_text("{}\n", encoding="utf-8")
+            raise StorageError("ready triage must not contain ambiguities")
+
+    monkeypatch.setattr(workflow, "REPOSITORY_ROOT", repository)
+    monkeypatch.setattr(workflow, "EVENTS_PATH", events_path)
+    monkeypatch.setattr(workflow, "RUNS_ROOT", repository / "runs")
+
+    loop = EngineeringLoop(
+        runner,
+        github,  # type: ignore[arg-type]
+        implementer=FakeImplementer(),  # type: ignore[arg-type]
+        explorer=InvalidExplorer(),
+    )
+
+    with pytest.raises(WorkflowError, match="rerun make loop"):
+        loop.run_once()
 
 
 class FakeGitHub:

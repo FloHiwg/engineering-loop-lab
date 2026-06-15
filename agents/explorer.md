@@ -15,3 +15,7 @@ Return only the structured result requested by the runtime schema:
 
 Choose `escalate` when required product behavior or acceptance criteria cannot
 be established from the supplied evidence. Do not guess.
+
+For `ready`, `ambiguities` must be empty. Put non-blocking edge cases and
+concerns under `risks`. For `escalate`, list the blocking questions under
+`ambiguities` and set `success_predicate` to null.
