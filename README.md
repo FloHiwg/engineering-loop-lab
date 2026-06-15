@@ -30,6 +30,9 @@ request. It never merges automatically.
 - [GitHub CLI](https://cli.github.com/)
 - [Codex CLI](https://developers.openai.com/codex/cli/) authenticated locally
 
+On macOS, setup automatically detects the CLI bundled with `Codex.app`. For a
+custom installation, set `CODEX_BIN` to the executable path.
+
 Your `origin` remote must point to a fork owned by the authenticated GitHub
 user. Setup refuses to create anything in another user's repository.
 

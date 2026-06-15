@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -10,6 +11,7 @@ from loop_engineering_example.loop.workflow import (
     RepositoryContext,
     SubprocessRunner,
     WorkflowError,
+    codex_executable,
     event_id,
     setup_demo,
 )
@@ -77,6 +79,21 @@ def test_context_explains_repository_scoped_authentication() -> None:
 
     with pytest.raises(WorkflowError, match="fine-grained token"):
         GitHub(FailingRunner()).context()
+
+
+def test_codex_executable_prefers_explicit_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CODEX_BIN", "/custom/codex")
+
+    assert codex_executable() == "/custom/codex"
+
+
+def test_missing_command_has_friendly_error() -> None:
+    missing = f"missing-command-{os.getpid()}"
+
+    with pytest.raises(WorkflowError, match=f"required command not found: {missing}"):
+        SubprocessRunner().run([missing])
 
 
 def test_github_filters_unrelated_labeled_issues_and_prefixed_branches() -> None:

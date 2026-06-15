@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -29,6 +30,7 @@ EVENTS_PATH = REPOSITORY_ROOT / "mock-systems" / "monitoring" / "events.jsonl"
 RUNS_ROOT = REPOSITORY_ROOT / "runs"
 WORKTREES_ROOT = REPOSITORY_ROOT / "worktrees"
 LABEL = "loop-demo"
+MACOS_CODEX_PATH = Path("/Applications/Codex.app/Contents/Resources/codex")
 
 
 class WorkflowError(RuntimeError):
@@ -55,13 +57,16 @@ class SubprocessRunner:
         input_text: str | None = None,
         check: bool = True,
     ) -> str:
-        process = subprocess.run(
-            command,
-            cwd=cwd,
-            input=input_text,
-            capture_output=True,
-            text=True,
-        )
+        try:
+            process = subprocess.run(
+                command,
+                cwd=cwd,
+                input=input_text,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError as error:
+            raise WorkflowError(f"required command not found: {command[0]}") from error
         if check and process.returncode != 0:
             detail = process.stderr.strip() or process.stdout.strip()
             raise WorkflowError(f"{' '.join(command)} failed: {detail}")
@@ -74,6 +79,20 @@ class RepositoryContext:
     owner: str
     login: str
     default_branch: str
+
+
+def codex_executable() -> str:
+    configured = os.environ.get("CODEX_BIN")
+    if configured:
+        return configured
+    discovered = shutil.which("codex")
+    if discovered:
+        return discovered
+    if MACOS_CODEX_PATH.is_file():
+        return str(MACOS_CODEX_PATH)
+    raise WorkflowError(
+        "Codex CLI was not found. Install it or set CODEX_BIN to its executable."
+    )
 
 
 class GitHub:
@@ -275,7 +294,7 @@ def event_id(issue: Record) -> str | None:
 
 def setup_demo(github: GitHub) -> RepositoryContext:
     context = github.context()
-    github.runner.run(["codex", "--version"])
+    github.runner.run([codex_executable(), "--version"])
     github.ensure_label(context.name)
     existing = {event_id(issue): issue for issue in github.issues(context.name)}
     for event in load_events():
@@ -290,9 +309,9 @@ def setup_demo(github: GitHub) -> RepositoryContext:
 
 
 class Implementer:
-    def __init__(self, runner: Runner, executable: str = "codex") -> None:
+    def __init__(self, runner: Runner, executable: str | None = None) -> None:
         self.runner = runner
-        self.executable = executable
+        self.executable = executable or codex_executable()
 
     def run(self, worktree: Path, prompt: str, output_directory: Path) -> None:
         output_directory.mkdir(parents=True, exist_ok=True)
@@ -410,6 +429,7 @@ class EngineeringLoop:
         explorer = self.explorer or CodexExplorer(
             repository=REPOSITORY_ROOT,
             schema_path=REPOSITORY_ROOT / "agents" / "explorer.schema.json",
+            executable=codex_executable(),
         )
         instructions = (REPOSITORY_ROOT / "agents" / "explorer.md").read_text()
         prompt = build_triage_prompt(instructions, event, issue, issue["body"])
