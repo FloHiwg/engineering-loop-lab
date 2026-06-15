@@ -5,7 +5,7 @@ from typing import Any
 from loop_engineering_example.app.calculator import Number, calculate
 
 
-def handle_calculation(request: dict[str, Any]) -> dict[str, Number]:
+def handle_calculation(request: dict[str, Any]) -> dict[str, Number | str]:
     operation = request.get("operation")
     left = request.get("left")
     right = request.get("right")
@@ -17,4 +17,7 @@ def handle_calculation(request: dict[str, Any]) -> dict[str, Number]:
     if not isinstance(right, int | float) or isinstance(right, bool):
         raise ValueError("right must be a number")
 
-    return {"result": calculate(operation, left, right)}
+    try:
+        return {"result": calculate(operation, left, right)}
+    except ZeroDivisionError:
+        return {"error": "division by zero"}

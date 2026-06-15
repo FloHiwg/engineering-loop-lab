@@ -9,6 +9,15 @@ def test_handle_calculation_returns_result() -> None:
     }
 
 
+@pytest.mark.parametrize("right", [0, 0.0, -0.0])
+def test_handle_calculation_returns_error_for_division_by_zero(
+    right: int | float,
+) -> None:
+    assert handle_calculation({"operation": "divide", "left": 10, "right": right}) == {
+        "error": "division by zero"
+    }
+
+
 @pytest.mark.parametrize(
     ("payload", "message"),
     [
