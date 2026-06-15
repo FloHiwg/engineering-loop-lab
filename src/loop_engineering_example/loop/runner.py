@@ -1,4 +1,4 @@
-"""CLI and deterministic orchestration for the scripted loop."""
+"""CLI and deterministic orchestration for the example loop."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from loop_engineering_example.loop.triage import (
     save_validated_result,
 )
 
-DEFAULT_ROOT = Path("runs/demo")
+DEFAULT_ROOT = Path("runs/concrete")
 DEFAULT_FIXTURES = Path("mock-systems")
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 TransitionObserver = Callable[[Record, Record], None]
@@ -355,7 +355,7 @@ def describe_transition(previous: Record, current: Record) -> list[str]:
     return lines
 
 
-def run_demo(loop: ScriptedLoop) -> Record:
+def run_scripted_demo(loop: ScriptedLoop) -> Record:
     loop.reset()
     print("Scripted loop demo")
     print(f"Runtime files: {loop.root}")
@@ -372,12 +372,12 @@ def run_demo(loop: ScriptedLoop) -> Record:
 
     result = loop.run(observer=observe)
     print("\nCompleted: DONE")
-    print("Inspect artifacts with: make inspect-demo")
+    print("Inspect artifacts with the runner's inspect command.")
     print("Confirm the bug remains with: make reproduce-division-by-zero")
     return result
 
 
-def run_agent_demo(loop: ScriptedLoop) -> Record:
+def run_demo(loop: ScriptedLoop) -> Record:
     loop.reset()
     print("Read-only explorer demo")
     print(f"Runtime files: {loop.root}")
@@ -403,11 +403,23 @@ def run_agent_demo(loop: ScriptedLoop) -> Record:
     return current
 
 
+def build_snapshot(root: Path) -> Record:
+    monitoring = MonitoringAdapter(root)
+    return {
+        "monitoring": monitoring.list_events(),
+        "acknowledgments": monitoring.list_acknowledgments(),
+        "tickets": TicketAdapter(root).list_tickets(),
+        "ci_runs": CIAdapter(root).list_runs(),
+        "pull_requests": PullRequestAdapter(root).list_pull_requests(),
+        "state": StateAdapter(root / "state.json").load(),
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("agent-demo", "demo", "reset", "step", "run", "status"),
+        choices=("demo", "inspect", "reset", "run", "scripted-demo", "status", "step"),
     )
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
@@ -416,7 +428,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     arguments = build_parser().parse_args()
-    if arguments.command == "agent-demo":
+    if arguments.command == "demo":
         repository = REPOSITORY_ROOT
         explorer = CodexExplorer(
             repository=repository,
@@ -428,11 +440,14 @@ def main() -> int:
             explorer=explorer,
             repository=repository,
         )
-        run_agent_demo(loop)
+        run_demo(loop)
         return 0
     loop = ScriptedLoop(arguments.root, fixtures=arguments.fixtures)
-    if arguments.command == "demo":
-        run_demo(loop)
+    if arguments.command == "scripted-demo":
+        run_scripted_demo(loop)
+        return 0
+    if arguments.command == "inspect":
+        print(json.dumps(build_snapshot(arguments.root), indent=2, sort_keys=True))
         return 0
     actions = {
         "reset": loop.reset,

@@ -9,7 +9,11 @@ from loop_engineering_example.loop.adapters import (
     StateAdapter,
     TicketAdapter,
 )
-from loop_engineering_example.loop.runner import ScriptedLoop, describe_transition
+from loop_engineering_example.loop.runner import (
+    ScriptedLoop,
+    build_snapshot,
+    describe_transition,
+)
 from loop_engineering_example.loop.state_machine import (
     LoopState,
     validate_loop_state,
@@ -87,6 +91,22 @@ def test_terminal_run_is_idempotent(tmp_path: Path, fixtures: Path) -> None:
 
     assert second == first
     assert side_effect_counts(root) == counts
+
+
+def test_snapshot_collects_readable_system_state(
+    tmp_path: Path,
+    fixtures: Path,
+) -> None:
+    root = tmp_path / "run"
+    loop = ScriptedLoop(root, fixtures)
+    loop.reset()
+    loop.advance()
+
+    snapshot = build_snapshot(root)
+
+    assert snapshot["monitoring"][0]["event_id"] == "evt-001"
+    assert snapshot["state"]["current"] == LoopState.DISCOVERED
+    assert snapshot["tickets"] == []
 
 
 def test_restart_at_every_state_does_not_duplicate_side_effects(

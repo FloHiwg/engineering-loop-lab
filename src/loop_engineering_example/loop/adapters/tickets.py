@@ -52,6 +52,15 @@ class TicketAdapter:
             "file": filename,
         }
         formatted_request = json.dumps(event["request"], indent=2, sort_keys=True)
+        acceptance_criteria = event.get("acceptance_criteria", [])
+        if not isinstance(acceptance_criteria, list) or not all(
+            isinstance(item, str) and item.strip() for item in acceptance_criteria
+        ):
+            raise StorageError("acceptance_criteria must contain non-empty strings")
+        acceptance_section = ""
+        if acceptance_criteria:
+            criteria = "".join(f"- {item}\n" for item in acceptance_criteria)
+            acceptance_section = f"## Acceptance Criteria\n\n{criteria}\n"
         body = (
             f"# {ticket_id}: {ticket['title']}\n\n"
             f"- Status: {ticket['status']}\n"
@@ -60,6 +69,7 @@ class TicketAdapter:
             f"- Reproduce: `{event['reproduce']}`\n\n"
             "## Request\n\n"
             f"```json\n{formatted_request}\n```\n\n"
+            f"{acceptance_section}"
             "## Comments\n"
         )
         atomic_write_text(self.directory / filename, body)

@@ -1,234 +1,115 @@
 # Loop Engineering Example
 
-A deliberately small "software team in a repository" for studying agent loop
-design. External systems are represented by readable files so the interesting
-part remains visible: state, evidence, retries, isolation, review, and stopping
-conditions.
+A deliberately small experiment showing how deterministic orchestration can
+bound an AI agent working from monitoring evidence.
 
-This repository is an instrumented educational experiment, not a production
-autonomous-development system. Some later checkpoints intentionally contain
-defects or failed agent behavior. Each checkpoint documents what is expected.
+The current loop does five things:
 
-## Current Checkpoint
+```text
+event -> ticket -> explorer -> validated decision -> state transition
+```
 
-`step-04-agent-triage` adds a real read-only explorer to the deterministic
-loop. It may establish a testable success predicate or escalate ambiguity, but
-it cannot edit code or begin implementation.
+It does not edit code yet. Complete requirements reach `READY`; incomplete
+requirements reach `ESCALATED`.
 
-The complete roadmap is in [PLAN.md](PLAN.md). [CLAUDE.md](CLAUDE.md) defines
-the working rules used while building it.
+## Try It
 
-## Requirements
-
-- Git
-- Python 3.12 or newer
-- [uv](https://docs.astral.sh/uv/)
-- Make
-
-## Setup
-
-From a fresh clone:
+Requirements: Git, Python 3.12+, [uv](https://docs.astral.sh/uv/), and Make.
 
 ```bash
 make setup
 make check
-```
-
-`make setup` creates a local virtual environment from the committed lockfile.
-`make check` runs formatting checks, linting, and tests.
-
-Useful commands:
-
-```bash
-make format
-make test
-make inspect-systems
 make demo
-make inspect-demo
-make agent-demo
-make agent-ambiguous-demo
-make reproduce-division-by-zero
 ```
 
-## Agent Triage
+`make demo` runs a real read-only Codex explorer against the division-by-zero
+event. It requires local Codex authentication and network access.
 
-Run the explorer against a concrete ticket:
+The expected result is `READY`. Inspect the generated event, ticket, state, and
+agent evidence with:
 
 ```bash
-make agent-demo
+make inspect
 ```
 
-It should stop at `READY` with relevant files, constraints, risks, recommended
-tests, and a testable success predicate. Run the intentionally incomplete
-decimal ticket with:
+Now run the same loop with an underspecified floating-point event:
 
 ```bash
-make agent-ambiguous-demo
+make demo SCENARIO=ambiguous
+make inspect SCENARIO=ambiguous
 ```
 
-It should stop at `ESCALATED` rather than inventing a numeric contract. Both
-commands invoke the local Codex CLI and therefore require its authentication
-and network access. The explorer runs in a read-only, ephemeral sandbox with a
-JSON output schema.
+The expected result is `ESCALATED`. The explorer refuses to choose among exact
+decimal arithmetic, rounding, formatting, or approximate comparison without a
+defined product contract.
 
-Generated evidence is stored below the selected ignored `runs/` directory:
+Generated data is stored under ignored `runs/<scenario>/` directories.
 
-```text
-agent/triage/
-├── prompt.txt
-├── result.json
-├── stderr.txt
-└── validated-result.json
-```
+## What To Inspect
 
-The transcript records tool calls and reported token usage. The validated
-result records the decision, repository findings, duration, and token count.
-Deterministic validation rejects malformed or contradictory output before the
-loop can advance.
+The five most useful files are:
 
-## Scripted Loop
-
-Run the deterministic lifecycle:
-
-```bash
-make demo
-make inspect-demo
-```
-
-`make demo` resets the ignored `runs/demo/` directory and prints every action
-as it advances the known event through:
-
-```text
-DISCOVERED -> TRIAGED -> READY -> IMPLEMENTING
-  -> VERIFYING -> PR_OPEN -> DONE
-```
-
-The implementation, CI result, and approval are explicitly scripted evidence.
-This checkpoint tests orchestration, recovery, and idempotency; it does not fix
-the calculator defect. `make reproduce-division-by-zero` still reproduces it.
-
-To advance and inspect one state at a time:
-
-```bash
-make loop-reset
-make loop-step
-make loop-status
-```
-
-Durable state records the event, ticket, branch, worktree, assigned role,
-attempt count, evidence, estimated cost, last error, and next action. Repeating
-a step after losing its state update does not duplicate external side effects.
-
-## File-Backed Systems
-
-Inspect the current external-system snapshot with:
-
-```bash
-make inspect-systems
-```
-
-The adapters own all reads and writes:
-
-| System | Storage |
+| File | Purpose |
 |---|---|
-| Monitoring | `mock-systems/monitoring/events.jsonl` |
-| Tickets | Markdown files plus `mock-systems/tickets/index.json` |
-| CI | `mock-systems/ci/runs.jsonl` |
-| Pull requests | JSON files plus `mock-systems/pull-requests/index.json` |
-| Durable state | `mock-systems/state.json` |
+| `mock-systems/monitoring/events.jsonl` | Concrete input event |
+| `scenarios/ambiguous-ticket/monitoring/events.jsonl` | Ambiguous input event |
+| `agents/explorer.md` | Read-only role and judgment rules |
+| `agents/explorer.schema.json` | Required structured output |
+| `src/loop_engineering_example/loop/runner.py` | Deterministic state control |
 
-JSONL systems are append-only. Mutable indexes, tickets, pull requests, and
-state use atomic file replacement. Adapter operations return structured Python
-dictionaries and validate data when crossing the storage boundary. Repeating
-the same operation does not create duplicate side effects.
+After a demo, `runs/<scenario>/agent/triage/` contains the exact prompt, tool
+transcript, raw result, and validated result. The agent proposes a decision;
+ordinary Python validation decides whether the loop may advance.
 
-The source tree separates the application under test from the orchestration:
+## Application Under Test
+
+`src/loop_engineering_example/app/` contains a tiny calculator API. Division by
+zero intentionally escapes as a raw `ZeroDivisionError`:
+
+```bash
+make reproduce-division-by-zero
+```
+
+The defect remains unfixed at this checkpoint because the experiment currently
+stops after triage.
+
+## Repository Shape
 
 ```text
-src/loop_engineering_example/
-├── app/   # calculator, API boundary, defect reproduction
-└── loop/  # runner, state machine, adapters, storage, inspection
+agents/                               # agent instructions and output schema
+mock-systems/                         # readable file-backed external systems
+scenarios/                            # alternate event inputs
+src/loop_engineering_example/app/     # software being examined
+src/loop_engineering_example/loop/    # orchestration, state, and adapters
+tests/                                # deterministic behavior and boundaries
 ```
 
-Within `loop/adapters/`, each external system has its own module.
-`loop/storage.py` contains only shared JSON, JSONL, validation, and atomic-write
-helpers. `loop/inspect.py` implements the read-only inspection commands.
+Each external system has its own adapter module. Shared JSON and atomic-write
+helpers live in `loop/storage.py`.
 
-## Sample Application
+## Replay Earlier Steps
 
-The application has a pure calculator service and a small dictionary-based API
-boundary. It supports `add`, `subtract`, `multiply`, and `divide`.
-
-### Intentional Defect
-
-Division by zero is deliberately unhandled and escapes the API boundary as a
-raw `ZeroDivisionError`. This is the monitoring-driven defect that a later
-checkpoint will ask the loop to fix.
-
-Reproduce and verify it with:
+Every completed phase has an immutable annotated Git tag:
 
 ```bash
-make reproduce-division-by-zero
-```
-
-The matching readable monitoring event is in
-`mock-systems/monitoring/events.jsonl`. Baseline tests intentionally cover only
-supported behavior; the reproduction command guards the defective checkpoint.
-
-### Missing Feature
-
-The `modulo` operation is intentionally absent. Its acceptance criteria are:
-
-- A request with `operation: "modulo"` returns the remainder of `left / right`.
-- Numeric validation matches the existing operations.
-- A zero right operand returns a controlled application error rather than a
-  raw Python exception.
-- Existing operations keep their current behavior.
-
-## Replaying Checkpoints
-
-Each completed phase has an immutable annotated Git tag. To inspect this
-checkpoint:
-
-```bash
+git tag --list 'step-*'
 git switch --detach step-04-agent-triage
-make setup
-make check
-make agent-demo
-make agent-ambiguous-demo
-make reproduce-division-by-zero
 ```
 
-Return to current development with:
+Follow the README at that tag to replay its exact interface, then return with:
 
 ```bash
 git switch main
 ```
 
-Later checkpoints will add scenario-specific replay commands. Generated run
-data belongs under `runs/` and is ignored unless deliberately curated for the
-public evidence set.
-
-## Experiment Notes
-
-Draft article notes, decisions, and checkpoint interviews are maintained
-locally under the ignored `docs/` directory. They are working material rather
-than part of the public example.
+The remaining roadmap and experiment questions are in [PLAN.md](PLAN.md).
 
 ## Limitations
 
+- This is an educational experiment, not a production autonomous system.
 - Agent behavior is non-deterministic even when orchestration is deterministic.
-- File-backed systems model contracts and state, not the operational behavior
-  of real services.
+- File-backed systems model contracts and state, not real service operations.
 - Measurements from one runtime, model, or task do not generalize by default.
-- The core walkthrough must remain usable without credentials or paid
-  services.
-
-## Contributing
-
-Run `make check` and keep changes small, reproducible, and relevant to the
-current checkpoint. Later checkpoints may intentionally contain defects; each
-one will state what is expected.
 
 ## License
 

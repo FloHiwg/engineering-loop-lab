@@ -29,6 +29,10 @@ def event() -> dict[str, object]:
             "function": "divide",
         },
         "reproduce": "make reproduce-division-by-zero",
+        "acceptance_criteria": [
+            'A divide request with right=0 returns {"error":"division by zero"}.',
+            "No raw ZeroDivisionError escapes the API boundary.",
+        ],
     }
 
 
@@ -102,6 +106,8 @@ def test_ticket_contract_creates_one_readable_ticket(
     ticket_text = (tmp_path / "tickets" / f"{ticket_id}.md").read_text()
     assert "- Status: triaged" in ticket_text
     assert "make reproduce-division-by-zero" in ticket_text
+    assert "## Acceptance Criteria" in ticket_text
+    assert "No raw ZeroDivisionError" in ticket_text
     assert ticket_text.count("Reproduced locally.") == 1
 
 

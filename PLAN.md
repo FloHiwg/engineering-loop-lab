@@ -59,7 +59,7 @@ The project has three equally important outputs:
 
 - Real databases, queues, Docker, and deployment infrastructure.
 - Production security or multi-tenant operation.
-- Real SaaS integrations until the file-backed loop is complete.
+- Real SaaS integrations.
 - Parallel work until the single-ticket lifecycle is stable.
 - Optimization for token cost or throughput before measurements exist.
 
@@ -71,10 +71,6 @@ loop-engineering-example/
 │   ├── calculator.py
 │   └── api.py
 ├── tests/
-├── skills/
-│   ├── triage/SKILL.md
-│   ├── implement/SKILL.md
-│   └── verify/SKILL.md
 ├── agents/
 │   ├── explorer.md
 │   ├── implementer.md
@@ -287,7 +283,7 @@ Exit criteria:
 Deliver:
 
 - Explorer role with read-only permissions.
-- Triage skill with an explicit input/output schema.
+- Explorer instructions with an explicit output schema.
 - Output containing relevant files, constraints, ambiguity, risk, and a
   testable success predicate.
 - Escalation when required information or acceptance criteria are missing.
