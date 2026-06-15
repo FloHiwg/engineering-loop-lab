@@ -9,6 +9,18 @@ def test_handle_calculation_returns_result() -> None:
     }
 
 
+def test_handle_calculation_returns_modulo_result() -> None:
+    assert handle_calculation({"operation": "modulo", "left": 10, "right": 3}) == {
+        "result": 1
+    }
+
+
+def test_handle_calculation_handles_modulo_by_zero() -> None:
+    assert handle_calculation({"operation": "modulo", "left": 10, "right": 0}) == {
+        "error": "division by zero"
+    }
+
+
 @pytest.mark.parametrize(
     ("payload", "message"),
     [

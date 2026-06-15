@@ -10,6 +10,7 @@ from loop_engineering_example.app.calculator import calculate
         ("subtract", 7, 3, 4),
         ("multiply", 7, 3, 21),
         ("divide", 7, 2, 3.5),
+        ("modulo", 10, 3, 1),
     ],
 )
 def test_calculate_supported_operations(
