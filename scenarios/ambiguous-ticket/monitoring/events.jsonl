@@ -1,1 +1,0 @@
-{"event_id":"evt-ambiguous-001","deduplication_key":"calculator:UnexpectedResult:add","status":"open","service":"calculator-api","error_type":"UnexpectedResult","message":"decimal addition returned an unexpected result","request":{"operation":"add","left":0.1,"right":0.2},"source":{"module":"loop_engineering_example.app.calculator","function":"add"},"reproduce":"not provided"}

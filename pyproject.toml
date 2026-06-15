@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "loop-engineering-example"
 version = "0.0.0"
-description = "A file-backed experiment for studying software-engineering agent loops"
+description = "A forkable demo that turns monitoring events into pull requests"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"

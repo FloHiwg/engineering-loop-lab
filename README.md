@@ -1,115 +1,109 @@
-# Loop Engineering Example
+# Engineering Loop Demo
 
-A deliberately small experiment showing how deterministic orchestration can
-bound an AI agent working from monitoring evidence.
-
-The current loop does five things:
+Fork this repository and watch a small AI software team create three pull
+requests in your fork.
 
 ```text
-event -> ticket -> explorer -> validated decision -> state transition
+monitoring event + GitHub issue
+              |
+              v
+           triage
+              |
+              v
+     isolated Git worktree
+              |
+              v
+      implement and test
+              |
+              v
+       open pull request
 ```
 
-It does not edit code yet. Complete requirements reach `READY`; incomplete
-requirements reach `ESCALATED`.
+Each loop run processes exactly one issue and stops after opening its pull
+request. It never merges automatically.
 
-## Try It
+## Requirements
 
-Requirements: Git, Python 3.12+, [uv](https://docs.astral.sh/uv/), and Make.
+- Git
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/)
+- [GitHub CLI](https://cli.github.com/) authenticated with `gh auth login`
+- [Codex CLI](https://developers.openai.com/codex/cli/) authenticated locally
+
+Your `origin` remote must point to a fork owned by the authenticated GitHub
+user. Setup refuses to create anything in another user's repository.
+
+## Run It
 
 ```bash
 make setup
-make check
-make demo
+make loop
+make loop
+make loop
+make status
 ```
 
-`make demo` runs a real read-only Codex explorer against the division-by-zero
-event. It requires local Codex authentication and network access.
+`make setup` installs dependencies and idempotently creates three GitHub Issues
+from `mock-systems/monitoring/events.jsonl`.
 
-The expected result is `READY`. Inspect the generated event, ticket, state, and
-agent evidence with:
+Each `make loop`:
+
+1. Reads the open demo issues and monitoring events.
+2. Picks the oldest issue without a pull request.
+3. Uses a read-only explorer to establish a testable success predicate.
+4. Creates or resumes `worktrees/issue-<number>`.
+5. Lets an implementer make the smallest viable change there.
+6. Runs `make check`, commits, pushes, and opens a pull request.
+
+After three runs, your fork has three open pull requests. Keeping the runs
+separate makes it easy to inspect how the same loop picks the next issue each
+time.
+
+Generated prompts, transcripts, and results live under ignored `runs/`.
+Worktrees live under ignored `worktrees/`.
+
+## Start Again
 
 ```bash
-make inspect
+make reset
 ```
 
-Now run the same loop with an underspecified floating-point event:
+Reset is intentionally guarded because it closes remote demo issues and pull
+requests. First inspect what will be affected with `make status`, then run:
 
 ```bash
-make demo SCENARIO=ambiguous
-make inspect SCENARIO=ambiguous
+make reset CONFIRM=1
 ```
 
-The expected result is `ESCALATED`. The explorer refuses to choose among exact
-decimal arithmetic, rounding, formatting, or approximate comparison without a
-defined product contract.
+It only touches issues labeled `loop-demo`, branches named `loop-demo/*`, and
+matching local worktrees.
 
-Generated data is stored under ignored `runs/<scenario>/` directories.
+Then run `make setup` again.
 
-## What To Inspect
-
-The five most useful files are:
-
-| File | Purpose |
-|---|---|
-| `mock-systems/monitoring/events.jsonl` | Concrete input event |
-| `scenarios/ambiguous-ticket/monitoring/events.jsonl` | Ambiguous input event |
-| `agents/explorer.md` | Read-only role and judgment rules |
-| `agents/explorer.schema.json` | Required structured output |
-| `src/loop_engineering_example/loop/runner.py` | Deterministic state control |
-
-After a demo, `runs/<scenario>/agent/triage/` contains the exact prompt, tool
-transcript, raw result, and validated result. The agent proposes a decision;
-ordinary Python validation decides whether the loop may advance.
-
-## Application Under Test
-
-`src/loop_engineering_example/app/` contains a tiny calculator API. Division by
-zero intentionally escapes as a raw `ZeroDivisionError`:
+To inspect the repository as it existed before the GitHub-backed redesign:
 
 ```bash
-make reproduce-division-by-zero
+git switch --detach pre-github-loop-demo
 ```
 
-The defect remains unfixed at this checkpoint because the experiment currently
-stops after triage.
+Return to the current version with `git switch main`.
 
-## Repository Shape
+## What Is Mocked?
 
-```text
-agents/                               # agent instructions and output schema
-mock-systems/                         # readable file-backed external systems
-scenarios/                            # alternate event inputs
-src/loop_engineering_example/app/     # software being examined
-src/loop_engineering_example/loop/    # orchestration, state, and adapters
-tests/                                # deterministic behavior and boundaries
-```
+Only monitoring is mocked as three readable JSON lines. GitHub Issues, Git
+branches, worktrees, commits, and pull requests are real and belong to your
+fork.
 
-Each external system has its own adapter module. Shared JSON and atomic-write
-helpers live in `loop/storage.py`.
+The sample application is a deliberately incomplete calculator under
+`src/loop_engineering_example/app/`.
 
-## Replay Earlier Steps
+## Limits
 
-Every completed phase has an immutable annotated Git tag:
-
-```bash
-git tag --list 'step-*'
-git switch --detach step-04-agent-triage
-```
-
-Follow the README at that tag to replay its exact interface, then return with:
-
-```bash
-git switch main
-```
-
-The remaining roadmap and experiment questions are in [PLAN.md](PLAN.md).
-
-## Limitations
-
-- This is an educational experiment, not a production autonomous system.
-- Agent behavior is non-deterministic even when orchestration is deterministic.
-- File-backed systems model contracts and state, not real service operations.
-- Measurements from one runtime, model, or task do not generalize by default.
+- This is an educational demo, not a production autonomous system.
+- Agent output is non-deterministic.
+- Pull requests may overlap because they all start from the fork's default
+  branch and remain open for inspection.
+- Setup and reset perform real writes in your fork.
 
 ## License
 

@@ -19,7 +19,7 @@ def multiply(left: Number, right: Number) -> Number:
 
 
 def divide(left: Number, right: Number) -> Number:
-    # Intentional defect for step-01: zero is not handled at the API boundary.
+    # Intentional defect for the loop demo.
     return left / right
 
 
