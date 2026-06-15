@@ -362,6 +362,7 @@ def git(*arguments: str, cwd: Path) -> str:
 
 def test_three_loop_runs_create_three_branches_and_pull_requests(
     tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     repository = tmp_path / "repository"
     origin = tmp_path / "origin.git"
@@ -449,3 +450,9 @@ def test_three_loop_runs_create_three_branches_and_pull_requests(
     assert "origin/loop-demo/issue-1" in branches
     assert "origin/loop-demo/issue-2" in branches
     assert "origin/loop-demo/issue-3" in branches
+    output = capsys.readouterr().out
+    assert "Starting one engineering-loop run." in output
+    assert "Running the read-only triage agent." in output
+    assert "Running the implementation agent." in output
+    assert "All checks passed." in output
+    assert "Opened pull request:" in output

@@ -83,6 +83,9 @@ Each `make loop`:
 5. Lets an implementer make the smallest viable change there.
 6. Runs `make check`, commits, pushes, and opens a pull request.
 
+The command prints each stage immediately. Triage and implementation can each
+take a few minutes; the current stage remains visible while the agent works.
+
 After three runs, your fork has three open pull requests. Keeping the runs
 separate makes it easy to inspect how the same loop picks the next issue each
 time.

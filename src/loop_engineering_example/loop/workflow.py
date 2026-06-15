@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -35,6 +36,15 @@ MACOS_CODEX_PATH = Path("/Applications/Codex.app/Contents/Resources/codex")
 
 class WorkflowError(RuntimeError):
     """Raised when the demo cannot continue safely."""
+
+
+class Progress:
+    def __init__(self) -> None:
+        self.started = time.monotonic()
+
+    def log(self, message: str) -> None:
+        elapsed = time.monotonic() - self.started
+        print(f"[{elapsed:6.1f}s] {message}", flush=True)
 
 
 class Runner(Protocol):
@@ -406,18 +416,27 @@ class EngineeringLoop:
         return branch, worktree
 
     def run_once(self) -> None:
+        progress = Progress()
+        progress.log("Starting one engineering-loop run.")
+        progress.log("Checking that the main checkout is clean.")
         if self.runner.run(
             ["git", "status", "--porcelain"],
             cwd=REPOSITORY_ROOT,
         ):
             raise WorkflowError("main checkout must be clean before running the loop")
+        progress.log("Reading repository and GitHub state.")
         context = self.github.context()
         issues = self.github.issues(context.name, state="open")
         pull_requests = self.github.pull_requests(context.name, state="open")
+        progress.log(
+            f"Found {len(issues)} open demo issues and "
+            f"{len(pull_requests)} open demo pull requests."
+        )
         issue = self.next_issue(issues, pull_requests)
         if issue is None:
-            print("No unprocessed loop-demo issue remains.")
+            progress.log("No unprocessed loop-demo issue remains.")
             return
+        progress.log(f"Selected issue #{issue['number']}: {issue['title']}")
         events = {event["event_id"]: event for event in load_events()}
         selected_event_id = event_id(issue)
         try:
@@ -433,14 +452,18 @@ class EngineeringLoop:
         )
         instructions = (REPOSITORY_ROOT / "agents" / "explorer.md").read_text()
         prompt = build_triage_prompt(instructions, event, issue, issue["body"])
+        progress.log("Running the read-only triage agent. This can take a minute.")
         report = save_validated_result(
             run_directory / "triage",
             explorer.explore(prompt, run_directory / "triage"),
         )
+        progress.log(f"Triage finished with decision: {report['decision'].upper()}.")
         if report["decision"] != "ready":
             raise WorkflowError("triage escalated: " + "; ".join(report["ambiguities"]))
 
+        progress.log("Creating or resuming the isolated Git worktree.")
         branch, worktree = self.prepare_worktree(context, issue["number"])
+        progress.log(f"Worktree ready: {worktree.relative_to(REPOSITORY_ROOT)}")
         implementer_rules = (REPOSITORY_ROOT / "agents" / "implementer.md").read_text()
         implementation_prompt = (
             f"{implementer_rules}\n\n"
@@ -448,13 +471,18 @@ class EngineeringLoop:
             f"## Triage report\n\n```json\n"
             f"{json.dumps(report, indent=2, sort_keys=True)}\n```\n"
         )
+        progress.log("Running the implementation agent. This can take a few minutes.")
         self.implementer.run(
             worktree,
             implementation_prompt,
             run_directory / "implementation",
         )
+        progress.log("Implementation agent finished.")
+        progress.log("Running formatting, linting, and tests in the worktree.")
         self.runner.run(["make", "check"], cwd=worktree)
+        progress.log("All checks passed.")
         if self.runner.run(["git", "status", "--porcelain"], cwd=worktree):
+            progress.log("Committing the implementation.")
             self.runner.run(["git", "add", "-A"], cwd=worktree)
             self.runner.run(
                 ["git", "commit", "-m", issue["title"]],
@@ -473,7 +501,9 @@ class EngineeringLoop:
         )
         if ahead == 0:
             raise WorkflowError("implementer produced no commit")
+        progress.log(f"Pushing branch {branch}.")
         self.runner.run(["git", "push", "-u", "origin", branch], cwd=worktree)
+        progress.log("Opening the pull request.")
         url = self.github.create_pull_request(context, issue, branch, report)
         atomic_write_json(
             run_directory / "result.json",
@@ -484,7 +514,7 @@ class EngineeringLoop:
                 "pull_request": url,
             },
         )
-        print(f"Opened pull request: {url}")
+        progress.log(f"Opened pull request: {url}")
 
 
 def show_status(github: GitHub) -> None:
