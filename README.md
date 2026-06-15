@@ -11,9 +11,9 @@ defects or failed agent behavior. Each checkpoint documents what is expected.
 
 ## Current Checkpoint
 
-`step-03-deterministic-loop` connects the file-backed systems with a scripted,
-restartable state machine. No agent or real implementation work is involved
-yet.
+`step-04-agent-triage` adds a real read-only explorer to the deterministic
+loop. It may establish a testable success predicate or escalate ambiguity, but
+it cannot edit code or begin implementation.
 
 The complete roadmap is in [PLAN.md](PLAN.md). [CLAUDE.md](CLAUDE.md) defines
 the working rules used while building it.
@@ -45,8 +45,46 @@ make test
 make inspect-systems
 make demo
 make inspect-demo
+make agent-demo
+make agent-ambiguous-demo
 make reproduce-division-by-zero
 ```
+
+## Agent Triage
+
+Run the explorer against a concrete ticket:
+
+```bash
+make agent-demo
+```
+
+It should stop at `READY` with relevant files, constraints, risks, recommended
+tests, and a testable success predicate. Run the intentionally incomplete
+decimal ticket with:
+
+```bash
+make agent-ambiguous-demo
+```
+
+It should stop at `ESCALATED` rather than inventing a numeric contract. Both
+commands invoke the local Codex CLI and therefore require its authentication
+and network access. The explorer runs in a read-only, ephemeral sandbox with a
+JSON output schema.
+
+Generated evidence is stored below the selected ignored `runs/` directory:
+
+```text
+agent/triage/
+├── prompt.txt
+├── result.json
+├── stderr.txt
+└── validated-result.json
+```
+
+The transcript records tool calls and reported token usage. The validated
+result records the decision, repository findings, duration, and token count.
+Deterministic validation rejects malformed or contradictory output before the
+loop can advance.
 
 ## Scripted Loop
 
@@ -153,11 +191,11 @@ Each completed phase has an immutable annotated Git tag. To inspect this
 checkpoint:
 
 ```bash
-git switch --detach step-03-deterministic-loop
+git switch --detach step-04-agent-triage
 make setup
 make check
-make demo
-make inspect-demo
+make agent-demo
+make agent-ambiguous-demo
 make reproduce-division-by-zero
 ```
 

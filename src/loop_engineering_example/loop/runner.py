@@ -22,16 +22,31 @@ from loop_engineering_example.loop.state_machine import (
     validate_loop_state,
 )
 from loop_engineering_example.loop.storage import Record, StorageError
+from loop_engineering_example.loop.triage import (
+    CodexExplorer,
+    ExplorerRuntime,
+    build_triage_prompt,
+    save_validated_result,
+)
 
 DEFAULT_ROOT = Path("runs/demo")
 DEFAULT_FIXTURES = Path("mock-systems")
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 TransitionObserver = Callable[[Record, Record], None]
 
 
 class ScriptedLoop:
-    def __init__(self, root: Path, fixtures: Path = DEFAULT_FIXTURES) -> None:
+    def __init__(
+        self,
+        root: Path,
+        fixtures: Path = DEFAULT_FIXTURES,
+        explorer: ExplorerRuntime | None = None,
+        repository: Path = REPOSITORY_ROOT,
+    ) -> None:
         self.root = root
         self.fixtures = fixtures
+        self.explorer = explorer
+        self.repository = repository
         self.monitoring = MonitoringAdapter(root)
         self.tickets = TicketAdapter(root)
         self.ci = CIAdapter(root)
@@ -57,7 +72,7 @@ class ScriptedLoop:
         current = validate_loop_state(state)
         actions = {
             LoopState.DISCOVERED: self._triage,
-            LoopState.TRIAGED: self._ready,
+            LoopState.TRIAGED: self._explore if self.explorer else self._ready,
             LoopState.READY: self._implement,
             LoopState.IMPLEMENTING: self._verify,
             LoopState.VERIFYING: self._open_pull_request,
@@ -143,6 +158,64 @@ class ScriptedLoop:
             LoopState.READY,
             evidence=evidence,
             next_action="run scripted implementation",
+        )
+        return self.state.save(updated)["state"]
+
+    def _explore(self, state: Record) -> Record:
+        ticket_id = state["ticket_id"]
+        ticket = next(
+            ticket
+            for ticket in self.tickets.list_tickets()
+            if ticket["ticket_id"] == ticket_id
+        )
+        ticket_text = (self.root / "tickets" / ticket["file"]).read_text(
+            encoding="utf-8"
+        )
+        instructions = (self.repository / "agents" / "explorer.md").read_text(
+            encoding="utf-8"
+        )
+        prompt = build_triage_prompt(
+            instructions,
+            self._event(state),
+            ticket,
+            ticket_text,
+        )
+        output_directory = self.root / "agent" / "triage"
+        raw_result = self.explorer.explore(prompt, output_directory)
+        result = save_validated_result(output_directory, dict(raw_result))
+        evidence = [
+            *state["evidence"],
+            {
+                "kind": "triage_report",
+                "decision": result["decision"],
+                "path": "agent/triage/validated-result.json",
+            },
+        ]
+        if result["decision"] == "escalate":
+            self.tickets.transition(ticket_id, "escalated")
+            updated = transition(
+                state,
+                LoopState.ESCALATED,
+                agent="explorer",
+                evidence=evidence,
+                last_error="; ".join(result["ambiguities"]),
+                next_action=None,
+            )
+            return self.state.save(updated)["state"]
+
+        self.tickets.transition(ticket_id, "ready")
+        evidence.append(
+            {
+                "kind": "success_predicate",
+                "value": result["success_predicate"],
+            }
+        )
+        updated = transition(
+            state,
+            LoopState.READY,
+            agent="explorer",
+            evidence=evidence,
+            next_action="run implementation in an isolated worktree",
         )
         return self.state.save(updated)["state"]
 
@@ -304,19 +377,60 @@ def run_demo(loop: ScriptedLoop) -> Record:
     return result
 
 
+def run_agent_demo(loop: ScriptedLoop) -> Record:
+    loop.reset()
+    print("Read-only explorer demo")
+    print(f"Runtime files: {loop.root}")
+    states = []
+    while not states or states[-1] not in {LoopState.READY, LoopState.ESCALATED}:
+        previous = loop.status()
+        current = loop.advance()
+        state = LoopState(current["current"])
+        states.append(state)
+        if state in {LoopState.DISCOVERED, LoopState.TRIAGED}:
+            lines = describe_transition(previous, current)
+            print(f"\n[{len(states)}/3] {lines[0]}")
+            for line in lines[1:]:
+                print(line)
+        elif state is LoopState.READY:
+            print("\n[3/3] READY: Explorer produced a validated success predicate.")
+            print(f"  report: {loop.root / 'agent/triage/validated-result.json'}")
+        else:
+            print("\n[3/3] ESCALATED: Explorer found unresolved ambiguity.")
+            print(f"  reason: {current['last_error']}")
+            print(f"  report: {loop.root / 'agent/triage/validated-result.json'}")
+    print(f"\nCompleted triage: {states[-1].value}")
+    return current
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("demo", "reset", "step", "run", "status"),
+        choices=("agent-demo", "demo", "reset", "step", "run", "status"),
     )
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
     return parser
 
 
 def main() -> int:
     arguments = build_parser().parse_args()
-    loop = ScriptedLoop(arguments.root)
+    if arguments.command == "agent-demo":
+        repository = REPOSITORY_ROOT
+        explorer = CodexExplorer(
+            repository=repository,
+            schema_path=repository / "agents" / "explorer.schema.json",
+        )
+        loop = ScriptedLoop(
+            arguments.root,
+            fixtures=arguments.fixtures,
+            explorer=explorer,
+            repository=repository,
+        )
+        run_agent_demo(loop)
+        return 0
+    loop = ScriptedLoop(arguments.root, fixtures=arguments.fixtures)
     if arguments.command == "demo":
         run_demo(loop)
         return 0

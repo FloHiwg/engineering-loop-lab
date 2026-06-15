@@ -1,8 +1,9 @@
 UV := UV_CACHE_DIR=.uv-cache uv
 
 .PHONY: \
-	setup check demo format inspect-demo inspect-systems lint loop-reset \
-	loop-status loop-step test reproduce-division-by-zero
+	agent-ambiguous-demo agent-demo setup check demo format inspect-demo \
+	inspect-systems lint loop-reset loop-status loop-step test \
+	reproduce-division-by-zero
 
 setup:
 	$(UV) sync --locked
@@ -39,6 +40,15 @@ loop-status:
 
 demo:
 	$(UV) run python -m loop_engineering_example.loop.runner demo
+
+agent-demo:
+	$(UV) run python -m loop_engineering_example.loop.runner agent-demo \
+		--root runs/agent-demo
+
+agent-ambiguous-demo:
+	$(UV) run python -m loop_engineering_example.loop.runner agent-demo \
+		--root runs/agent-ambiguous-demo \
+		--fixtures scenarios/ambiguous-ticket
 
 reproduce-division-by-zero:
 	$(UV) run python -m loop_engineering_example.app.reproduce
