@@ -13,6 +13,7 @@ from loop_engineering_example.loop.workflow import (
     WorkflowError,
     codex_executable,
     event_id,
+    require_synced_default_branch,
     setup_demo,
 )
 
@@ -47,6 +48,14 @@ def repository_response(owner: str = "reader") -> str:
 
 def context_responses(owner: str = "reader", login: str = "reader") -> dict:
     return {
+        ("git", "branch", "--show-current"): "main",
+        (
+            "git",
+            "rev-list",
+            "--left-right",
+            "--count",
+            "origin/main...HEAD",
+        ): "0\t0",
         ("gh", "api", "user", "--jq", ".login"): login,
         (
             "gh",
@@ -94,6 +103,30 @@ def test_missing_command_has_friendly_error() -> None:
 
     with pytest.raises(WorkflowError, match=f"required command not found: {missing}"):
         SubprocessRunner().run([missing])
+
+
+def test_default_branch_must_be_pushed_before_setup() -> None:
+    runner = FakeRunner(
+        {
+            ("git", "branch", "--show-current"): "main",
+            (
+                "git",
+                "rev-list",
+                "--left-right",
+                "--count",
+                "origin/main...HEAD",
+            ): "0\t3",
+        }
+    )
+    context = RepositoryContext(
+        name="reader/demo",
+        owner="reader",
+        login="reader",
+        default_branch="main",
+    )
+
+    with pytest.raises(WorkflowError, match="git push origin main"):
+        require_synced_default_branch(runner, context)
 
 
 def test_github_filters_unrelated_labeled_issues_and_prefixed_branches() -> None:

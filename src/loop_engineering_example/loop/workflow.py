@@ -302,8 +302,44 @@ def event_id(issue: Record) -> str | None:
     return body.split(marker, 1)[1].split("-->", 1)[0].strip()
 
 
+def require_synced_default_branch(
+    runner: Runner,
+    context: RepositoryContext,
+) -> None:
+    branch = runner.run(["git", "branch", "--show-current"], cwd=REPOSITORY_ROOT)
+    if branch != context.default_branch:
+        raise WorkflowError(
+            f"check out the default branch first: git switch {context.default_branch}"
+        )
+    runner.run(
+        ["git", "fetch", "origin", context.default_branch],
+        cwd=REPOSITORY_ROOT,
+    )
+    counts = runner.run(
+        [
+            "git",
+            "rev-list",
+            "--left-right",
+            "--count",
+            f"origin/{context.default_branch}...HEAD",
+        ],
+        cwd=REPOSITORY_ROOT,
+    )
+    behind, ahead = (int(value) for value in counts.split())
+    if ahead or behind:
+        if ahead and not behind:
+            action = f"git push origin {context.default_branch}"
+        else:
+            action = "synchronize the local and remote default branches"
+        raise WorkflowError(
+            f"local {context.default_branch} and origin/{context.default_branch} "
+            f"must match before the demo ({behind} behind, {ahead} ahead); {action}"
+        )
+
+
 def setup_demo(github: GitHub) -> RepositoryContext:
     context = github.context()
+    require_synced_default_branch(github.runner, context)
     github.runner.run([codex_executable(), "--version"])
     github.ensure_label(context.name)
     existing = {event_id(issue): issue for issue in github.issues(context.name)}
@@ -426,6 +462,7 @@ class EngineeringLoop:
             raise WorkflowError("main checkout must be clean before running the loop")
         progress.log("Reading repository and GitHub state.")
         context = self.github.context()
+        require_synced_default_branch(self.runner, context)
         issues = self.github.issues(context.name, state="open")
         pull_requests = self.github.pull_requests(context.name, state="open")
         progress.log(

@@ -34,7 +34,8 @@ On macOS, setup automatically detects the CLI bundled with `Codex.app`. For a
 custom installation, set `CODEX_BIN` to the executable path.
 
 Your `origin` remote must point to a fork owned by the authenticated GitHub
-user. Setup refuses to create anything in another user's repository.
+user. Your checked-out default branch must also be pushed and exactly match
+`origin/main`. Setup refuses to create anything otherwise.
 
 ### Repository-Scoped GitHub Access
 
