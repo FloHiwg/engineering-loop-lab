@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from loop_engineering_example.adapters import (
+from loop_engineering_example.loop.adapters import (
     CIAdapter,
     MonitoringAdapter,
     PullRequestAdapter,
     StateAdapter,
     TicketAdapter,
 )
-from loop_engineering_example.storage import StorageError
+from loop_engineering_example.loop.storage import StorageError
 
 
 @pytest.fixture
@@ -25,7 +25,7 @@ def event() -> dict[str, object]:
         "message": "division by zero",
         "request": {"operation": "divide", "left": 10, "right": 0},
         "source": {
-            "module": "loop_engineering_example.calculator",
+            "module": "loop_engineering_example.app.calculator",
             "function": "divide",
         },
         "reproduce": "make reproduce-division-by-zero",
@@ -42,6 +42,7 @@ def test_monitoring_contract_is_idempotent(
     assert adapter.emit(event)["created"] is False
     assert adapter.acknowledge("evt-001")["created"] is True
     assert adapter.acknowledge("evt-001")["created"] is False
+    assert len(adapter.list_acknowledgments()) == 1
 
     records = (tmp_path / "monitoring" / "events.jsonl").read_text().splitlines()
     assert len(records) == 2
@@ -147,6 +148,24 @@ def test_pull_request_contract_deduplicates_and_reviews(tmp_path: Path) -> None:
     assert len(adapter.list_pull_requests()) == 1
     assert adapter.review(pull_request_id, "approved", "All checks pass")["changed"]
     assert not adapter.review(pull_request_id, "approved", "All checks pass")["changed"]
+    assert adapter.merge(pull_request_id)["changed"] is True
+    assert adapter.merge(pull_request_id)["changed"] is False
+    assert adapter.list_pull_requests()[0]["status"] == "merged"
+
+
+def test_pull_request_must_be_approved_before_merge(tmp_path: Path) -> None:
+    adapter = PullRequestAdapter(tmp_path)
+    ticket = {"ticket_id": "TICKET-001", "title": "Handle division by zero"}
+    pull_request_id = adapter.open(ticket, "diff --git", "ci-001")["pull_request"][
+        "pull_request_id"
+    ]
+
+    with pytest.raises(StorageError, match="reviewed"):
+        adapter.merge(pull_request_id)
+
+    adapter.review(pull_request_id, "rejected", "Missing a regression test")
+    with pytest.raises(StorageError, match="approved"):
+        adapter.merge(pull_request_id)
 
 
 def test_state_contract_replaces_json_atomically(tmp_path: Path) -> None:

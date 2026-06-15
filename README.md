@@ -11,8 +11,9 @@ defects or failed agent behavior. Each checkpoint documents what is expected.
 
 ## Current Checkpoint
 
-`step-02-file-backed-systems` adds validated adapters for the readable mock
-systems. The deterministic software-team loop itself is not implemented yet.
+`step-03-deterministic-loop` connects the file-backed systems with a scripted,
+restartable state machine. No agent or real implementation work is involved
+yet.
 
 The complete roadmap is in [PLAN.md](PLAN.md). [CLAUDE.md](CLAUDE.md) defines
 the working rules used while building it.
@@ -42,8 +43,43 @@ Useful commands:
 make format
 make test
 make inspect-systems
+make demo
+make inspect-demo
 make reproduce-division-by-zero
 ```
+
+## Scripted Loop
+
+Run the deterministic lifecycle:
+
+```bash
+make demo
+make inspect-demo
+```
+
+`make demo` resets the ignored `runs/demo/` directory and prints every action
+as it advances the known event through:
+
+```text
+DISCOVERED -> TRIAGED -> READY -> IMPLEMENTING
+  -> VERIFYING -> PR_OPEN -> DONE
+```
+
+The implementation, CI result, and approval are explicitly scripted evidence.
+This checkpoint tests orchestration, recovery, and idempotency; it does not fix
+the calculator defect. `make reproduce-division-by-zero` still reproduces it.
+
+To advance and inspect one state at a time:
+
+```bash
+make loop-reset
+make loop-step
+make loop-status
+```
+
+Durable state records the event, ticket, branch, worktree, assigned role,
+attempt count, evidence, estimated cost, last error, and next action. Repeating
+a step after losing its state update does not duplicate external side effects.
 
 ## File-Backed Systems
 
@@ -68,9 +104,17 @@ state use atomic file replacement. Adapter operations return structured Python
 dictionaries and validate data when crossing the storage boundary. Repeating
 the same operation does not create duplicate side effects.
 
-Each system has its own module under `src/loop_engineering_example/adapters/`.
-`storage.py` contains only shared JSON, JSONL, validation, and atomic-write
-helpers. `inspect.py` implements the read-only `make inspect-systems` command.
+The source tree separates the application under test from the orchestration:
+
+```text
+src/loop_engineering_example/
+├── app/   # calculator, API boundary, defect reproduction
+└── loop/  # runner, state machine, adapters, storage, inspection
+```
+
+Within `loop/adapters/`, each external system has its own module.
+`loop/storage.py` contains only shared JSON, JSONL, validation, and atomic-write
+helpers. `loop/inspect.py` implements the read-only inspection commands.
 
 ## Sample Application
 
@@ -109,10 +153,11 @@ Each completed phase has an immutable annotated Git tag. To inspect this
 checkpoint:
 
 ```bash
-git switch --detach step-02-file-backed-systems
+git switch --detach step-03-deterministic-loop
 make setup
 make check
-make inspect-systems
+make demo
+make inspect-demo
 make reproduce-division-by-zero
 ```
 

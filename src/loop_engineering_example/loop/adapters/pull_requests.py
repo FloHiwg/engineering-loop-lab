@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from loop_engineering_example.storage import (
+from loop_engineering_example.loop.storage import (
     Record,
     StorageError,
     atomic_write_json,
@@ -75,6 +75,22 @@ class PullRequestAdapter:
         review = {"verdict": verdict, "evidence": evidence}
         changed = pull_request["review"] != review
         pull_request["review"] = review
+        atomic_write_json(self.directory / f"{pull_request_id}.json", pull_request)
+        atomic_write_json(self.index_path, index)
+        return {"changed": changed, "pull_request": dict(pull_request)}
+
+    def merge(self, pull_request_id: str) -> Record:
+        index = self._index()
+        try:
+            pull_request = index["pull_requests"][pull_request_id]
+        except KeyError as error:
+            raise StorageError(f"unknown pull request: {pull_request_id}") from error
+        if pull_request["review"] is None:
+            raise StorageError("pull request must be reviewed before merge")
+        if pull_request["review"]["verdict"] != "approved":
+            raise StorageError("pull request must be approved before merge")
+        changed = pull_request["status"] != "merged"
+        pull_request["status"] = "merged"
         atomic_write_json(self.directory / f"{pull_request_id}.json", pull_request)
         atomic_write_json(self.index_path, index)
         return {"changed": changed, "pull_request": dict(pull_request)}

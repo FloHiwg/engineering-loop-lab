@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from loop_engineering_example.storage import (
+from loop_engineering_example.loop.storage import (
     Record,
     StorageError,
     append_jsonl,
@@ -47,14 +47,17 @@ class MonitoringAdapter:
             events.append(record)
         return events
 
-    def acknowledge(self, event_id: str) -> Record:
-        if find_record(self.list_events(), "event_id", event_id) is None:
-            raise StorageError(f"unknown event: {event_id}")
-        acknowledgments = [
+    def list_acknowledgments(self) -> list[Record]:
+        return [
             record
             for record in read_jsonl(self.path)
             if record.get("record_type") == "acknowledgment"
         ]
+
+    def acknowledge(self, event_id: str) -> Record:
+        if find_record(self.list_events(), "event_id", event_id) is None:
+            raise StorageError(f"unknown event: {event_id}")
+        acknowledgments = self.list_acknowledgments()
         existing = find_record(acknowledgments, "event_id", event_id)
         if existing is not None:
             return {"created": False, "acknowledgment": dict(existing)}

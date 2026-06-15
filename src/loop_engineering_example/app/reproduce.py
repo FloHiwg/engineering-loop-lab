@@ -1,6 +1,6 @@
 """Reproduce and verify the intentional division-by-zero defect."""
 
-from loop_engineering_example.api import handle_calculation
+from loop_engineering_example.app.api import handle_calculation
 
 
 def main() -> int:

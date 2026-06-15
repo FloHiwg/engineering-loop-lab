@@ -1,9 +1,10 @@
 """Print a structured snapshot of the readable mock systems."""
 
+import argparse
 import json
 from pathlib import Path
 
-from loop_engineering_example.adapters import (
+from loop_engineering_example.loop.adapters import (
     CIAdapter,
     MonitoringAdapter,
     PullRequestAdapter,
@@ -12,10 +13,18 @@ from loop_engineering_example.adapters import (
 )
 
 
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", type=Path, default=Path("mock-systems"))
+    return parser
+
+
 def main() -> int:
-    root = Path("mock-systems")
+    root = build_parser().parse_args().root
+    monitoring = MonitoringAdapter(root)
     snapshot = {
-        "monitoring": MonitoringAdapter(root).list_events(),
+        "monitoring": monitoring.list_events(),
+        "acknowledgments": monitoring.list_acknowledgments(),
         "tickets": TicketAdapter(root).list_tickets(),
         "ci_runs": CIAdapter(root).list_runs(),
         "pull_requests": PullRequestAdapter(root).list_pull_requests(),

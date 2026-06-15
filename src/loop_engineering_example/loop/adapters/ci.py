@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from loop_engineering_example.storage import (
+from loop_engineering_example.loop.storage import (
     Record,
     StorageError,
     append_jsonl,

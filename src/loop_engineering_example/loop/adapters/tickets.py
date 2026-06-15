@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from loop_engineering_example.adapters.monitoring import EVENT_FIELDS
-from loop_engineering_example.storage import (
+from loop_engineering_example.loop.adapters.monitoring import EVENT_FIELDS
+from loop_engineering_example.loop.storage import (
     Record,
     StorageError,
     atomic_write_json,

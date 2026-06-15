@@ -1,6 +1,6 @@
 import pytest
 
-from loop_engineering_example.calculator import calculate
+from loop_engineering_example.app.calculator import calculate
 
 
 @pytest.mark.parametrize(

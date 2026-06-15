@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from loop_engineering_example.calculator import Number, calculate
+from loop_engineering_example.app.calculator import Number, calculate
 
 
 def handle_calculation(request: dict[str, Any]) -> dict[str, Number]:

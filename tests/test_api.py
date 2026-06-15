@@ -1,6 +1,6 @@
 import pytest
 
-from loop_engineering_example.api import handle_calculation
+from loop_engineering_example.app.api import handle_calculation
 
 
 def test_handle_calculation_returns_result() -> None:
