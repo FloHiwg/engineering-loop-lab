@@ -26,6 +26,7 @@ make check   run repository checks
 ## Safety
 
 - Refuse setup unless `origin` belongs to the authenticated GitHub user.
+- Support a fine-grained `GH_TOKEN` restricted to the reader's fork.
 - Mark every remote resource with `loop-demo`.
 - Never merge pull requests.
 - Restrict implementation to a dedicated worktree.

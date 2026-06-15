@@ -27,11 +27,36 @@ request. It never merges automatically.
 - Git
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- [GitHub CLI](https://cli.github.com/) authenticated with `gh auth login`
+- [GitHub CLI](https://cli.github.com/)
 - [Codex CLI](https://developers.openai.com/codex/cli/) authenticated locally
 
 Your `origin` remote must point to a fork owned by the authenticated GitHub
 user. Setup refuses to create anything in another user's repository.
+
+### Repository-Scoped GitHub Access
+
+Use a short-lived
+[fine-grained personal access token](https://github.com/settings/personal-access-tokens/new)
+instead of granting GitHub CLI broad account access:
+
+1. Select your account as the resource owner.
+2. Select only this fork under repository access.
+3. Grant repository permissions:
+   - Contents: Read
+   - Issues: Read and write
+   - Pull requests: Read and write
+4. Choose a short expiration.
+
+Load it into the current terminal without echoing it:
+
+```bash
+read -s GH_TOKEN
+export GH_TOKEN
+```
+
+Paste the token, press Enter, and keep that terminal open while running the
+demo. Git pushes use your existing SSH key. Remove the token afterward with
+`unset GH_TOKEN`.
 
 ## Run It
 

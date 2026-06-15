@@ -63,6 +63,22 @@ def test_context_requires_repository_owned_by_authenticated_user() -> None:
         github.context()
 
 
+def test_context_explains_repository_scoped_authentication() -> None:
+    class FailingRunner(FakeRunner):
+        def run(
+            self,
+            command: list[str],
+            *,
+            cwd: Path | None = None,
+            input_text: str | None = None,
+            check: bool = True,
+        ) -> str:
+            raise WorkflowError("invalid token")
+
+    with pytest.raises(WorkflowError, match="fine-grained token"):
+        GitHub(FailingRunner()).context()
+
+
 def test_github_filters_unrelated_labeled_issues_and_prefixed_branches() -> None:
     responses = {
         (

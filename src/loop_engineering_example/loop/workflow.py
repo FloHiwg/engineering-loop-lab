@@ -81,7 +81,14 @@ class GitHub:
         self.runner = runner
 
     def context(self) -> RepositoryContext:
-        self.runner.run(["gh", "auth", "status"])
+        try:
+            self.runner.run(["gh", "auth", "status"])
+        except WorkflowError as error:
+            raise WorkflowError(
+                "GitHub authentication is unavailable. Set GH_TOKEN to a "
+                "fine-grained token limited to this fork with Issues and Pull "
+                "requests read/write access."
+            ) from error
         login = self.runner.run(["gh", "api", "user", "--jq", ".login"])
         raw = self.runner.run(
             [
